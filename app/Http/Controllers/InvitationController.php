@@ -6,6 +6,7 @@ use App\Models\Colocation;
 use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use \App\Models\User;
 
 class InvitationController extends Controller
 {
@@ -38,6 +39,20 @@ class InvitationController extends Controller
             return back()->withErrors([
                 'email' => 'Cet email est déjà membre de cette colocation.',
             ])->withInput();
+        }
+
+        $invitedUser = User::where('email', $request->email)->first();
+
+        if ($invitedUser && !$invitedUser->is_admin) {
+            $alreadyInAnotherColoc = $invitedUser->colocations()
+                ->wherePivotNull('left_at')
+                ->exists();
+
+            if ($alreadyInAnotherColoc) {
+                return back()->withErrors([
+                    'email' => 'Cet utilisateur est déjà membre actif d\'une colocation.',
+                ])->withInput();
+            }
         }
 
         $invitation = Invitation::create([
