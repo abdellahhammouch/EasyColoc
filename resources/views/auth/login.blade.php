@@ -43,5 +43,10 @@
                 {{ __('Log in') }}
             </x-primary-button>
         </div>
+        @if($errors->has('banned'))
+            <div class="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                {{ $errors->first('banned') }}
+            </div>
+        @endif
     </form>
 </x-guest-layout>
