@@ -48,11 +48,20 @@ class ColocationController extends Controller
     public function show(Colocation $colocation)
     {
         abort_unless(
-            $colocation->users()->where('users.id', auth()->id())->exists(),
+            $colocation->users()
+                ->where('users.id', auth()->id())
+                ->wherePivotNull('left_at')
+                ->exists(),
             403
         );
 
-        $colocation->load(['owner', 'users']);
+        $colocation->load(['owner', 'users']);+$colocation->load([
+            'owner',
+            'users',
+            'categories',
+            'expenses.category',
+            'expenses.payer',
+        ]);
 
         return view('colocations.show', compact('colocation'));
     }

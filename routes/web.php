@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\InvitationController;
-use App\Http\Middleware\EnsureNotBanned;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExpenseController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -14,10 +15,10 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', EnsureNotBanned::class, 'verified'])->name('dashboard');
+})->middleware(['auth', 'notbanned', 'verified'])->name('dashboard');
 
 
-Route::middleware(['auth', EnsureNotBanned::class])->group(function () {
+Route::middleware(['auth', 'notbanned'])->group(function () {
 
     // --- Profile ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -41,6 +42,15 @@ Route::middleware(['auth', EnsureNotBanned::class])->group(function () {
 
     Route::post('/invitations/{token}/decline', [InvitationController::class, 'decline'])
         ->name('invitations.decline');
+    // --- Categories (owner only) ---
+    Route::get('/colocations/{colocation}/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::patch('/colocations/{colocation}/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+
+   // --- Expenses (immutable: create + list) ---
+    Route::get('/colocations/{colocation}/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::get('/colocations/{colocation}/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
+    Route::post('/colocations/{colocation}/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
 });
 
 
