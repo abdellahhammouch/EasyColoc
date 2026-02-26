@@ -12,20 +12,14 @@ class InvitationController extends Controller
 {
     public function create(Colocation $colocation)
     {
-        abort_unless(
-            $colocation->users()->where('users.id', auth()->id())->exists(),
-            403
-        );
+        abort_unless($colocation->owner_id === auth()->id(), 403);
 
         return view('invitations.create', compact('colocation'));
     }
 
     public function store(Request $request, Colocation $colocation)
     {
-        abort_unless(
-            $colocation->users()->where('users.id', auth()->id())->exists(),
-            403
-        );
+        abort_unless($colocation->owner_id === auth()->id(), 403);
 
         $request->validate([
             'email' => ['required', 'email'],
@@ -98,6 +92,19 @@ class InvitationController extends Controller
         }
 
         $colocation = $invitation->colocation;
+
+        if (!auth()->user()->is_admin) {
+            $alreadyInColoc = auth()->user()
+                ->colocations()
+                ->wherePivotNull('left_at')
+                ->exists();
+
+            if ($alreadyInColoc) {
+                return back()->withErrors([
+                    'token' => 'Vous êtes déjà membre actif d\'une colocation.'
+                ]);
+            }
+        }
 
         $colocation->users()->syncWithoutDetaching([
             auth()->id() => [
