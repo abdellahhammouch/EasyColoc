@@ -55,7 +55,7 @@ class ColocationController extends Controller
             403
         );
 
-        $colocation->load(['owner', 'users']);+$colocation->load([
+        $colocation->load([
             'owner',
             'users',
             'categories',
