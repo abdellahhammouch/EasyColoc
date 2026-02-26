@@ -6,7 +6,7 @@ use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Middleware\EnsureNotBanned;
 use App\Http\Controllers\Admin\AdminUserController;
-use App\Http\Middleware\AdminMiddleware;
+use App\Http\Controllers\Admin\AdminDashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -47,15 +47,12 @@ Route::middleware(['auth', EnsureNotBanned::class])->group(function () {
 Route::get('/invitations/{token}', [InvitationController::class, 'show'])
     ->name('invitations.show');
 
-
-Route::middleware(['auth', EnsureNotBanned::class, 'admin'])
+Route::middleware(['auth', 'notbanned', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::patch('/users/{user}/ban', [AdminUserController::class, 'ban'])->name('users.ban');

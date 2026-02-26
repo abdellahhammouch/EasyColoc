@@ -11,7 +11,7 @@ class AdminUserController extends Controller
     {
         $users = User::query()
             ->orderByDesc('id')
-            ->get();
+            ->paginate(15);
 
         return view('admin.users.index', compact('users'));
     }

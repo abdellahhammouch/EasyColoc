@@ -37,7 +37,7 @@ class InvitationController extends Controller
 
         $invitedUser = User::where('email', $request->email)->first();
 
-        if ($invitedUser && !$invitedUser->is_admin) {
+        if ($invitedUser && $invitedUser->role !== 'admin') {
             $alreadyInAnotherColoc = $invitedUser->colocations()
                 ->wherePivotNull('left_at')
                 ->exists();
@@ -93,7 +93,7 @@ class InvitationController extends Controller
 
         $colocation = $invitation->colocation;
 
-        if (!auth()->user()->is_admin) {
+        if (auth()->user()->role !== 'admin') {
             $alreadyInColoc = auth()->user()
                 ->colocations()
                 ->wherePivotNull('left_at')
