@@ -4,12 +4,12 @@
 
         @if($invitation->status !== 'pending')
             <div class="p-3 bg-gray-100 rounded">
-                Invitation : <strong>{{ $invitation->status }}</strong>
+                Statut : <b>{{ $invitation->status }}</b>
             </div>
         @else
             <div class="p-4 border rounded space-y-2">
-                <p>Colocation : <strong>{{ $invitation->colocation->name }}</strong></p>
-                <p>Email invité : <strong>{{ $invitation->email }}</strong></p>
+                <p>Tu es invité à rejoindre : <b>{{ $invitation->colocation->name }}</b></p>
+                <p>Email invité : <b>{{ $invitation->email }}</b></p>
             </div>
 
             @error('token')
