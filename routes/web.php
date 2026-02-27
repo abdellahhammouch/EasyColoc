@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\PaymentController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -51,6 +52,9 @@ Route::middleware(['auth', 'notbanned'])->group(function () {
     Route::get('/colocations/{colocation}/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('/colocations/{colocation}/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
     Route::post('/colocations/{colocation}/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+
+    Route::post('/colocations/{colocation}/settle', [PaymentController::class, 'settle'])
+    ->name('payments.settle');
 });
 
 

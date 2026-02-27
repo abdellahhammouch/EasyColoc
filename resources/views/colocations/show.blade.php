@@ -32,7 +32,60 @@
             </ul>
         </div>
 
+        {{-- Balances --}}
+        <div class="p-4 border rounded space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold">Balances (membres actifs)</h2>
+
+                @php
+                    $me = $colocation->users->firstWhere('id', auth()->id());
+                    $myBalance = $me?->pivot?->balance ?? 0;
+                @endphp
+
+                @if($me && is_null($me->pivot->left_at) && (float)$myBalance < 0)
+                    <form method="POST" action="{{ route('payments.settle', $colocation) }}"
+                        onsubmit="return confirm('Confirmer : Marquer payé ?')">
+                        @csrf
+                        <button class="px-4 py-2 bg-black text-white rounded">
+                            Marquer payé
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            <ul class="space-y-2">
+                @foreach($colocation->users as $u)
+                    @if(is_null($u->pivot->left_at))
+                        @php $bal = (float) $u->pivot->balance; @endphp
+
+                        <li class="flex items-center justify-between border rounded p-3">
+                            <div>
+                                <b>{{ $u->name }}</b>
+                                <span class="text-xs text-gray-600">({{ $u->pivot->role }})</span>
+                            </div>
+
+                            <div>
+                                @if($bal > 0)
+                                    <span class="text-green-700 font-semibold">
+                                        +{{ number_format($bal, 2) }} (doit recevoir)
+                                    </span>
+                                @elseif($bal < 0)
+                                    <span class="text-red-700 font-semibold">
+                                        {{ number_format($bal, 2) }} (doit payer)
+                                    </span>
+                                @else
+                                    <span class="text-gray-700 font-semibold">0.00</span>
+                                @endif
+                            </div>
+                        </li>
+                    @endif
+                @endforeach
+            </ul>
+        </div>
+
+        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
 
             {{-- Catégories --}}
             <div class="p-4 border rounded space-y-3">
