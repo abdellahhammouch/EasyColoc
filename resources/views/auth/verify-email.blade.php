@@ -1,31 +1,41 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
-
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
-    @endif
-
-    <div class="mt-4 flex items-center justify-between">
-        <form method="POST" action="{{ route('verification.send') }}">
-            @csrf
-
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
+<div class="w-full max-w-md">
+    <div class="glass-form rounded-2xl p-10 space-y-7">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5 border border-primary/20">
+                <span class="material-symbols-outlined text-primary text-3xl">mark_email_unread</span>
             </div>
-        </form>
+            <span class="text-primary text-xs font-bold tracking-[0.25em] uppercase">Vérification</span>
+            <h1 class="text-3xl font-black tracking-tighter uppercase text-white mt-2">Vérifiez<br>votre email</h1>
+            <p class="text-stone-500 text-sm mt-3 leading-relaxed">
+                Un lien de vérification a été envoyé à votre adresse. Cliquez dessus pour activer votre compte.
+            </p>
+        </div>
 
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
+        @if (session('status') == 'verification-link-sent')
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+                <span class="material-symbols-outlined text-base">check_circle</span>
+                Un nouveau lien de vérification a été envoyé.
+            </div>
+        @endif
 
-            <button type="submit" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                {{ __('Log Out') }}
-            </button>
-        </form>
+        <div class="flex flex-col gap-3">
+            <form method="POST" action="{{ route('verification.send') }}">
+                @csrf
+                <button type="submit"
+                        class="w-full bg-primary text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full border-2 border-primary hover:bg-transparent hover:text-primary transition-all duration-300">
+                    Renvoyer l'email
+                </button>
+            </form>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit"
+                        class="w-full bg-transparent text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                    Se déconnecter
+                </button>
+            </form>
+        </div>
     </div>
+</div>
 </x-guest-layout>
