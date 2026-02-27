@@ -1,100 +1,80 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
-    <!-- Primary Navigation Menu -->
+<nav x-data="{ open: false }" class="sticky top-0 z-40 border-b border-white/5" style="background: rgba(26,25,24,0.85); backdrop-filter: blur(12px);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
-                    </a>
-                </div>
+            <!-- Logo + Links -->
+            <div class="flex items-center gap-10">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
+                        <span class="material-icons-round text-primary text-base">apartment</span>
+                    </div>
+                    <span class="font-bold tracking-tight uppercase text-white">Easy<span class="text-primary">Coloc</span></span>
+                </a>
 
-                <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+                <div class="hidden sm:flex items-center gap-6 text-xs font-bold uppercase tracking-widest opacity-60">
+                    <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'text-primary opacity-100' : 'hover:text-primary hover:opacity-100 transition-all' }}">Dashboard</a>
+                    <a href="{{ route('colocations.index') ?? '#' }}" class="{{ request()->routeIs('colocations.*') ? 'text-primary opacity-100' : 'hover:text-primary hover:opacity-100 transition-all' }}">Colocations</a>
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+            <!-- Right side -->
+            <div class="hidden sm:flex items-center gap-4">
+                @auth
+                    @if(Auth::user()->role === 'admin')
+                        <a href="{{ route('admin.dashboard') }}" class="text-xs font-bold uppercase tracking-widest text-primary opacity-70 hover:opacity-100 transition-opacity">Admin</a>
+                    @endif
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center gap-2 bg-surf-dark px-3 py-2 rounded-full border border-white/10 text-sm hover:border-primary/40 transition-all">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
+                                <span class="text-primary font-bold text-xs">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
                             </div>
+                            <span class="text-stone-300 text-xs font-medium">{{ Auth::user()->name }}</span>
+                            <span class="material-icons-round text-sm text-stone-500">expand_more</span>
                         </button>
-                    </x-slot>
 
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
-                        <!-- Authentication -->
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('Log Out') }}
-                            </x-dropdown-link>
-                        </form>
-                    </x-slot>
-                </x-dropdown>
+                        <div x-show="open" @click.away="open = false" x-transition
+                             class="absolute right-0 mt-2 w-44 rounded-xl border border-white/10 shadow-2xl py-1 z-50"
+                             style="background: #2D2B28;">
+                            <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-300 hover:bg-white/5 hover:text-primary transition-colors">
+                                <span class="material-icons-round text-base">person</span> Profil
+                            </a>
+                            <hr class="border-white/5 my-1">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 transition-colors w-full text-left">
+                                    <span class="material-icons-round text-base">logout</span> Déconnexion
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endauth
             </div>
 
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+            <!-- Mobile hamburger -->
+            <div class="flex items-center sm:hidden">
+                <button @click="open = !open" class="text-stone-400 hover:text-primary transition-colors">
+                    <span class="material-icons-round" x-show="!open">menu</span>
+                    <span class="material-icons-round" x-show="open" x-cloak>close</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-        </div>
-
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+    <!-- Mobile menu -->
+    <div x-show="open" x-cloak class="sm:hidden border-t border-white/5 px-4 py-4 space-y-2" style="background: #1A1918;">
+        <a href="{{ route('dashboard') }}" class="block px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary' : 'text-stone-300 hover:bg-white/5' }}">Dashboard</a>
+        <a href="#" class="block px-4 py-3 rounded-xl text-sm font-medium text-stone-300 hover:bg-white/5">Colocations</a>
+        @auth
+            <hr class="border-white/5 my-2">
+            <div class="px-4 py-2">
+                <p class="font-semibold text-stone-200">{{ Auth::user()->name }}</p>
+                <p class="text-xs text-stone-500">{{ Auth::user()->email }}</p>
             </div>
-
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
-
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
-                    </x-responsive-nav-link>
-                </form>
-            </div>
-        </div>
+            <a href="{{ route('profile.edit') }}" class="block px-4 py-3 rounded-xl text-sm text-stone-300 hover:bg-white/5">Profil</a>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="block w-full text-left px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-400/10">Déconnexion</button>
+            </form>
+        @endauth
     </div>
 </nav>
