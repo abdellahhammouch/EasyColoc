@@ -25,15 +25,6 @@
         @include('profile.partials.update-password-form')
     </div>
 
-    {{-- Delete Account --}}
-    <div class="rounded-2xl p-8 border border-red-500/20 bg-red-500/5">
-        <h2 class="font-bold text-red-400 mb-2 flex items-center gap-2">
-            <span class="material-icons-round">warning</span>
-            Zone dangereuse
-        </h2>
-        <p class="text-stone-500 text-sm mb-6">La suppression de votre compte est irréversible. Toutes vos données seront perdues.</p>
-        @include('profile.partials.delete-user-form')
-    </div>
 
 </div>
 </x-app-layout>

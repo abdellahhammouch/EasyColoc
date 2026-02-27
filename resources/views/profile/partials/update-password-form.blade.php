@@ -1,47 +1,74 @@
 <section>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Update Password') }}
-        </h2>
-
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
-    </header>
-
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('password.update') }}" class="space-y-5">
         @csrf
         @method('put')
 
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+        {{-- Current password --}}
+        <div class="flex flex-col gap-2">
+            <label for="update_password_current_password"
+                   class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">
+                Mot de passe actuel
+            </label>
+            <input id="update_password_current_password" name="current_password"
+                   type="password" autocomplete="current-password"
+                   placeholder="••••••••••••"
+                   class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                          bg-[#2A2826] border border-white/10
+                          focus:border-primary focus:ring-2 focus:ring-primary/20
+                          @if($errors->updatePassword->get('current_password')) border-red-500/50 bg-red-950/30 @endif">
+            @foreach ($errors->updatePassword->get('current_password') as $message)
+                <p class="text-red-400 text-xs">{{ $message }}</p>
+            @endforeach
         </div>
 
-        <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
+        {{-- New password --}}
+        <div class="flex flex-col gap-2">
+            <label for="update_password_password"
+                   class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">
+                Nouveau mot de passe
+            </label>
+            <input id="update_password_password" name="password"
+                   type="password" autocomplete="new-password"
+                   placeholder="••••••••••••"
+                   class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                          bg-[#2A2826] border border-white/10
+                          focus:border-primary focus:ring-2 focus:ring-primary/20
+                          @if($errors->updatePassword->get('password')) border-red-500/50 bg-red-950/30 @endif">
+            @foreach ($errors->updatePassword->get('password') as $message)
+                <p class="text-red-400 text-xs">{{ $message }}</p>
+            @endforeach
         </div>
 
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
+        {{-- Confirm password --}}
+        <div class="flex flex-col gap-2">
+            <label for="update_password_password_confirmation"
+                   class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">
+                Confirmer le nouveau mot de passe
+            </label>
+            <input id="update_password_password_confirmation" name="password_confirmation"
+                   type="password" autocomplete="new-password"
+                   placeholder="••••••••••••"
+                   class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                          bg-[#2A2826] border border-white/10
+                          focus:border-primary focus:ring-2 focus:ring-primary/20">
         </div>
 
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+        {{-- Submit --}}
+        <div class="flex items-center gap-4 pt-2">
+            <button type="submit"
+                    class="bg-primary text-black font-bold text-xs tracking-widest uppercase px-8 h-12 rounded-full hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
+                Mettre à jour
+            </button>
 
             @if (session('status') === 'password-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+                <p x-data="{ show: true }"
+                   x-show="show"
+                   x-transition
+                   x-init="setTimeout(() => show = false, 2500)"
+                   class="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                    <span class="material-icons-round text-base">check_circle</span>
+                    Mot de passe mis à jour !
+                </p>
             @endif
         </div>
     </form>
