@@ -1,52 +1,86 @@
 <x-guest-layout>
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
+<div class="w-full max-w-5xl flex flex-col lg:flex-row items-center gap-16">
 
-        <!-- Name -->
+    {{-- Form --}}
+    <div class="w-full lg:w-1/2 flex flex-col gap-8">
         <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            <span class="text-primary text-xs font-bold tracking-[0.25em] uppercase">Inscription Premium</span>
+            <h1 class="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-tight mt-2 text-white">
+                Rejoindre<br>la Coloc.
+            </h1>
+            <p class="text-stone-500 mt-3 text-sm">Créez votre compte et gérez vos colocations avec élégance.</p>
         </div>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <form method="POST" action="{{ route('register') }}" class="flex flex-col gap-5">
+            @csrf
+
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Nom complet</label>
+                <input type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name"
+                       class="input-field @error('name') border-red-500/50 @enderror"
+                       placeholder="Jean-Baptiste Dupont">
+                @error('name')
+                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Email</label>
+                <input type="email" name="email" value="{{ old('email') }}" required autocomplete="username"
+                       class="input-field @error('email') border-red-500/50 @enderror"
+                       placeholder="votre@email.fr">
+                @error('email')
+                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Mot de passe</label>
+                <input type="password" name="password" required autocomplete="new-password"
+                       class="input-field @error('password') border-red-500/50 @enderror"
+                       placeholder="••••••••••••">
+                @error('password')
+                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Confirmer le mot de passe</label>
+                <input type="password" name="password_confirmation" required autocomplete="new-password"
+                       class="input-field"
+                       placeholder="••••••••••••">
+            </div>
+
+            <button type="submit"
+                    class="mt-2 bg-primary text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full border-2 border-primary hover:bg-transparent hover:text-primary transition-all duration-300 shadow-lg shadow-primary/20">
+                Créer mon compte
+            </button>
+
+            <p class="text-center text-sm text-stone-600">
+                Déjà membre ?
+                <a href="{{ route('login') }}" class="text-primary font-bold hover:underline underline-offset-2">Se connecter</a>
+            </p>
+        </form>
+    </div>
+
+    {{-- Visual --}}
+    <div class="w-full lg:w-1/2 hidden lg:flex justify-end">
+        <div class="relative">
+            <div class="relative z-10 w-80 h-80 rounded-2xl flex flex-col items-center justify-center p-8 text-center"
+                 style="background: linear-gradient(135deg, rgba(212,175,55,0.12) 0%, transparent 100%); border: 1px solid rgba(212,175,55,0.2); backdrop-filter: blur(20px);">
+                <div class="bg-primary/15 p-6 rounded-full mb-5 border border-primary/20">
+                    <span class="material-symbols-outlined text-primary text-6xl">verified_user</span>
+                </div>
+                <h3 class="text-xl font-bold mb-2 text-white">Réputation Premium</h3>
+                <p class="text-stone-500 text-sm">Badge exclusif pour les résidents vérifiés de la plateforme.</p>
+                <div class="absolute -top-4 -right-4 w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-xl">
+                    <span class="material-symbols-outlined text-black font-bold text-xl">star</span>
+                </div>
+            </div>
+            <div class="absolute -top-16 -left-16 w-40 h-40 bg-primary/8 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-16 -right-16 w-56 h-56 bg-primary/5 rounded-full blur-3xl"></div>
         </div>
+    </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
-        </div>
-    </form>
+</div>
 </x-guest-layout>
