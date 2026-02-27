@@ -1,29 +1,39 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+<div class="max-w-2xl mx-auto space-y-7">
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
-        </div>
+    {{-- Header --}}
+    <div>
+        <p class="text-primary text-xs font-bold tracking-[0.25em] uppercase mb-1">Paramètres</p>
+        <h1 class="text-4xl font-serif font-bold text-white">Mon Profil</h1>
     </div>
+
+    {{-- Profile Info --}}
+    <div class="glass rounded-2xl p-8">
+        <h2 class="font-bold text-white mb-6 flex items-center gap-2">
+            <span class="material-icons-round text-primary">person</span>
+            Informations personnelles
+        </h2>
+        @include('profile.partials.update-profile-information-form')
+    </div>
+
+    {{-- Password --}}
+    <div class="glass rounded-2xl p-8">
+        <h2 class="font-bold text-white mb-6 flex items-center gap-2">
+            <span class="material-icons-round text-primary">lock</span>
+            Changer le mot de passe
+        </h2>
+        @include('profile.partials.update-password-form')
+    </div>
+
+    {{-- Delete Account --}}
+    <div class="rounded-2xl p-8 border border-red-500/20 bg-red-500/5">
+        <h2 class="font-bold text-red-400 mb-2 flex items-center gap-2">
+            <span class="material-icons-round">warning</span>
+            Zone dangereuse
+        </h2>
+        <p class="text-stone-500 text-sm mb-6">La suppression de votre compte est irréversible. Toutes vos données seront perdues.</p>
+        @include('profile.partials.delete-user-form')
+    </div>
+
+</div>
 </x-app-layout>
