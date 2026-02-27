@@ -15,40 +15,51 @@
             @csrf
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Nom complet</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Nom complet</label>
                 <input type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name"
-                       class="input-field @error('name') border-red-500/50 @enderror"
-                       placeholder="Jean-Baptiste Dupont">
+                       placeholder="Jean-Baptiste Dupont"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20
+                              @error('name') border-red-500/50 bg-red-950/30 @enderror">
                 @error('name')
-                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                    <p class="text-red-400 text-xs ml-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Email</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Email</label>
                 <input type="email" name="email" value="{{ old('email') }}" required autocomplete="username"
-                       class="input-field @error('email') border-red-500/50 @enderror"
-                       placeholder="votre@email.fr">
+                       placeholder="votre@email.fr"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20
+                              @error('email') border-red-500/50 bg-red-950/30 @enderror">
                 @error('email')
-                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                    <p class="text-red-400 text-xs ml-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Mot de passe</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Mot de passe</label>
                 <input type="password" name="password" required autocomplete="new-password"
-                       class="input-field @error('password') border-red-500/50 @enderror"
-                       placeholder="••••••••••••">
+                       placeholder="••••••••••••"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20
+                              @error('password') border-red-500/50 bg-red-950/30 @enderror">
                 @error('password')
-                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                    <p class="text-red-400 text-xs ml-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Confirmer le mot de passe</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Confirmer le mot de passe</label>
                 <input type="password" name="password_confirmation" required autocomplete="new-password"
-                       class="input-field"
-                       placeholder="••••••••••••">
+                       placeholder="••••••••••••"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20">
             </div>
 
             <button type="submit"

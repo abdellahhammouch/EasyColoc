@@ -6,7 +6,7 @@ Copier
 
     {{-- Header --}}
     <div class="flex items-center gap-4">
-        <a href="{{ route('colocations.index') ?? '#' }}" class="w-10 h-10 rounded-full glass flex items-center justify-center hover:border-primary/40 transition-colors text-stone-400 hover:text-primary">
+        <a href="{{ Route::has('colocations.index') ? route('colocations.index') : '#' }}" class="w-10 h-10 rounded-full glass flex items-center justify-center hover:border-primary/40 transition-colors text-stone-400 hover:text-primary">
             <span class="material-icons-round text-lg">arrow_back</span>
         </a>
         <div>

@@ -47,7 +47,7 @@
     <div>
         <h2 class="text-xs uppercase tracking-[0.3em] font-bold opacity-50 mb-6">Actions rapides</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a href="{{ route('colocations.index') ?? '#' }}"
+            <a href="{{ Route::has('colocations.index') ? route('colocations.index') : '#' }}"
                class="glass p-6 rounded-2xl flex items-center gap-5 hover:border-primary/40 transition-all group cursor-pointer">
                 <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
                     <span class="material-icons-round text-primary group-hover:text-black text-2xl transition-colors">home</span>
@@ -59,7 +59,7 @@
                 <span class="material-icons-round ml-auto text-stone-600 group-hover:text-primary transition-colors">chevron_right</span>
             </a>
 
-            <a href="{{ route('colocations.create') ?? '#' }}"
+            <a href="{{ Route::has('colocations.create') ? route('colocations.create') : '#' }}"
                class="glass p-6 rounded-2xl flex items-center gap-5 hover:border-primary/40 transition-all group cursor-pointer">
                 <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
                     <span class="material-icons-round text-primary group-hover:text-black text-2xl transition-colors">add_home</span>

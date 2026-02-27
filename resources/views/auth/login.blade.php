@@ -29,26 +29,32 @@
             @csrf
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Email</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Email</label>
                 <input type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                       class="input-field @error('email') border-red-500/50 @enderror"
-                       placeholder="votre@email.fr">
+                       placeholder="votre@email.fr"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20
+                              @error('email') border-red-500/50 bg-red-950/30 @enderror">
                 @error('email')
-                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                    <p class="text-red-400 text-xs ml-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-4">Mot de passe</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Mot de passe</label>
                 <input type="password" name="password" required autocomplete="current-password"
-                       class="input-field @error('password') border-red-500/50 @enderror"
-                       placeholder="••••••••••••">
+                       placeholder="••••••••••••"
+                       class="w-full h-14 px-5 rounded-xl text-sm text-stone-200 placeholder-stone-600 outline-none transition-all
+                              bg-[#2A2826] border border-white/10
+                              focus:border-primary focus:ring-2 focus:ring-primary/20
+                              @error('password') border-red-500/50 bg-red-950/30 @enderror">
                 @error('password')
-                    <p class="text-red-400 text-xs ml-4">{{ $message }}</p>
+                    <p class="text-red-400 text-xs ml-1">{{ $message }}</p>
                 @enderror
             </div>
 
-            <div class="flex items-center justify-between px-2">
+            <div class="flex items-center justify-between px-1">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="remember" id="remember_me"
                            class="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50">

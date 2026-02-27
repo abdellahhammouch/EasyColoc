@@ -12,7 +12,7 @@
 
                 <div class="hidden sm:flex items-center gap-6 text-xs font-bold uppercase tracking-widest opacity-60">
                     <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'text-primary opacity-100' : 'hover:text-primary hover:opacity-100 transition-all' }}">Dashboard</a>
-                    <a href="{{ route('colocations.index') ?? '#' }}" class="{{ request()->routeIs('colocations.*') ? 'text-primary opacity-100' : 'hover:text-primary hover:opacity-100 transition-all' }}">Colocations</a>
+                    <a href="{{ Route::has('colocations.index') ? route('colocations.index') : '#' }}" class="{{ request()->routeIs('colocations.*') ? 'text-primary opacity-100' : 'hover:text-primary hover:opacity-100 transition-all' }}">Colocations</a>
                 </div>
             </div>
 
@@ -20,7 +20,7 @@
             <div class="hidden sm:flex items-center gap-4">
                 @auth
                     @if(Auth::user()->role === 'admin')
-                        <a href="{{ route('admin.dashboard') }}" class="text-xs font-bold uppercase tracking-widest text-primary opacity-70 hover:opacity-100 transition-opacity">Admin</a>
+                        <a href="{{ Route::has('admin.dashboard') ? route('admin.dashboard') : '#' }}" class="text-xs font-bold uppercase tracking-widest text-primary opacity-70 hover:opacity-100 transition-opacity">Admin</a>
                     @endif
 
                     <div class="relative" x-data="{ open: false }">
