@@ -9,13 +9,16 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PaymentController;
+use App\Models\Colocation;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return view('dashboard', [
+        'userColocations' => auth()->user()->colocations ?? collect(),
+    ]);
 })->middleware(['auth', 'notbanned', 'verified'])->name('dashboard');
 
 
@@ -55,6 +58,8 @@ Route::middleware(['auth', 'notbanned'])->group(function () {
 
     Route::post('/colocations/{colocation}/settle', [PaymentController::class, 'settle'])
     ->name('payments.settle');
+
+    Route::get('/colocations', [ColocationController::class, 'index'])->name('colocations.index');
 });
 
 
