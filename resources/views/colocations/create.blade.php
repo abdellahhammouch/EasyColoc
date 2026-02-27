@@ -46,7 +46,6 @@ Copier
         </form>
     </div>
 
-    {{-- Info card --}}
     <div class="glass rounded-xl p-5 flex items-start gap-4">
         <span class="material-icons-round text-primary mt-0.5">info</span>
         <p class="text-stone-500 text-sm leading-relaxed">
