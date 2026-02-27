@@ -6,6 +6,8 @@ use App\Models\Colocation;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Services\BalanceService;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseController extends Controller
 {
@@ -53,7 +55,7 @@ class ExpenseController extends Controller
         return view('expenses.create', compact('colocation', 'categories'));
     }
 
-    public function store(Request $request, Colocation $colocation)
+    public function store(Request $request, Colocation $colocation, BalanceService $balanceService)
     {
         $this->assertActiveMember($colocation);
 
@@ -70,18 +72,22 @@ class ExpenseController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        Expense::create([
-            'colocation_id' => $colocation->id,
-            'category_id' => $request->category_id,
-            'paid_by' => auth()->id(),
-            'title' => $request->title,
-            'amount' => $request->amount,
-            'expense_date' => $request->expense_date,
-            'notes' => $request->notes,
-        ]);
+        DB::transaction(function () use ($request, $colocation, $balanceService) {
+            $expense = Expense::create([
+                'colocation_id' => $colocation->id,
+                'category_id' => $request->category_id,
+                'paid_by' => auth()->id(),
+                'title' => $request->title,
+                'amount' => $request->amount,
+                'expense_date' => $request->expense_date,
+                'notes' => $request->notes,
+            ]);
+
+            $balanceService->applyExpense($expense);
+        });
 
         return redirect()
             ->route('expenses.index', $colocation)
-            ->with('status', 'Dépense ajoutée.');
+            ->with('status', 'Dépense ajoutée et balances mises à jour.');
     }
 }

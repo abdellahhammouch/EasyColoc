@@ -7,12 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class BalanceService
 {
-    /**
-     * Appliquer une dépense sur les balances.
-     * Règle :
-     * - chaque membre actif : balance -= part
-     * - payeur : balance += total
-     */
+    
     public function applyExpense(Expense $expense): void
     {
         DB::transaction(function () use ($expense) {
@@ -20,7 +15,6 @@ class BalanceService
             $colocationId = $expense->colocation_id;
             $payerId = $expense->paid_by;
 
-            // Membres actifs
             $members = DB::table('colocation_user')
                 ->where('colocation_id', $colocationId)
                 ->whereNull('left_at')
@@ -32,21 +26,16 @@ class BalanceService
             $n = count($members);
             if ($n === 0) return;
 
-            // Total en centimes
             $totalCents = $this->toCents((string) $expense->amount);
 
-            // part en centimes
             $baseShare = intdiv($totalCents, $n);
-            $remainder = $totalCents % $n; // centimes restants
+            $remainder = $totalCents % $n;
 
-            // On distribue les centimes restants aux premiers membres (ordre stable)
             foreach ($members as $i => $userId) {
-                $share = $baseShare + ($i < $remainder ? 1 : 0); // part exacte en centimes
+                $share = $baseShare + ($i < $remainder ? 1 : 0);
 
-                // Tous paient leur part -> balance -= share
                 $deltaCents = -$share;
 
-                // Le payeur récupère tout le total -> balance += total
                 if ($userId === $payerId) {
                     $deltaCents += $totalCents;
                 }
@@ -61,16 +50,10 @@ class BalanceService
         });
     }
 
-    /**
-     * Marquer payé (tout d'un coup) :
-     * le débiteur paie les créanciers (balance > 0) jusqu'à balance = 0.
-     * On enregistre les paiements dans `payments`.
-     */
     public function settleMyDebt(int $colocationId, int $debtorId): void
     {
         DB::transaction(function () use ($colocationId, $debtorId) {
 
-            // 1) Balance actuelle du débiteur (lock pour éviter double click)
             $debtorRow = DB::table('colocation_user')
                 ->where('colocation_id', $colocationId)
                 ->where('user_id', $debtorId)
@@ -82,20 +65,18 @@ class BalanceService
 
             $debtorBalanceCents = $this->toCents((string) $debtorRow->balance);
 
-            // Si pas négatif => rien à payer
             if ($debtorBalanceCents >= 0) {
                 return;
             }
 
-            $debt = -$debtorBalanceCents; // combien il doit payer en centimes
+            $debt = -$debtorBalanceCents;
 
-            // 2) Créanciers (balance > 0)
             $creditors = DB::table('colocation_user')
                 ->where('colocation_id', $colocationId)
                 ->whereNull('left_at')
                 ->where('user_id', '!=', $debtorId)
                 ->where('balance', '>', 0)
-                ->orderByDesc('balance') // ceux qui doivent recevoir le plus d'abord
+                ->orderByDesc('balance')
                 ->orderBy('user_id')
                 ->lockForUpdate()
                 ->get();
@@ -108,7 +89,6 @@ class BalanceService
 
                 $pay = min($debt, $credCents);
 
-                // Insert payment (historique)
                 DB::table('payments')->insert([
                     'colocation_id' => $colocationId,
                     'from_user_id' => $debtorId,
@@ -121,7 +101,6 @@ class BalanceService
                     'updated_at' => now(),
                 ]);
 
-                // Update balances
                 DB::table('colocation_user')
                     ->where('colocation_id', $colocationId)
                     ->where('user_id', $debtorId)
@@ -135,16 +114,12 @@ class BalanceService
                 $debt -= $pay;
             }
 
-            // Si debt > 0 ici => incohérence (normalement impossible si balances correctes)
             if ($debt > 0) {
                 abort(500, "Incohérence balances: pas assez de créanciers pour régler la dette.");
             }
         });
     }
 
-    /**
-     * "12.34" -> 1234 (centimes) sans float
-     */
     private function toCents(string $amount): int
     {
         $amount = str_replace(',', '.', trim($amount));
@@ -163,9 +138,6 @@ class BalanceService
         return $neg ? -$cents : $cents;
     }
 
-    /**
-     * 1234 -> "12.34" (string) pour DB::raw / insert
-     */
     private function toDecimal(int $cents): string
     {
         $sign = $cents < 0 ? '-' : '';
