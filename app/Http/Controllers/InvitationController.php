@@ -7,6 +7,8 @@ use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use \App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ColocationInvitationMail;
 
 class InvitationController extends Controller
 {
@@ -58,13 +60,19 @@ class InvitationController extends Controller
             'expires_at'    => now()->addDays(7),
         ]);
 
+        Mail::to($invitation->email)->send(new ColocationInvitationMail($invitation));
+
         return redirect()
             ->route('invitations.create', $colocation)
-            ->with('invite_link', route('invitations.show', $invitation->token));
+            ->with('status', "Invitation envoyée par email à {$invitation->email}");
     }
 
     public function show(string $token)
     {
+        if (!auth()->check()) {
+            session(['url.intended' => url()->current()]);
+        }
+
         $invitation = Invitation::where('token', $token)->firstOrFail();
 
         if ($invitation->expires_at && now()->greaterThan($invitation->expires_at)) {

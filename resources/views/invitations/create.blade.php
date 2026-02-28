@@ -14,21 +14,10 @@
     </div>
 
     {{-- Invite link success --}}
-    @if(session('invite_link'))
-        <div class="glass rounded-xl p-5 border border-emerald-500/20 bg-emerald-500/5">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="material-icons-round text-emerald-400">check_circle</span>
-                <p class="text-emerald-400 font-bold text-sm">Invitation créée avec succès !</p>
-            </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 mb-2">Lien à partager</p>
-            <div class="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
-                <span class="material-icons-round text-primary text-sm">link</span>
-                <p class="text-stone-300 text-sm break-all flex-1 font-mono">{{ session('invite_link') }}</p>
-                <button onclick="navigator.clipboard.writeText('{{ session('invite_link') }}'); this.innerHTML='<span class=\'material-icons-round text-sm\'>done</span>'"
-                        class="text-primary hover:text-yellow-400 transition-colors flex-shrink-0">
-                    <span class="material-icons-round text-sm">content_copy</span>
-                </button>
-            </div>
+    @if(session('status'))
+        <div class="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+            <span class="material-icons-round">check_circle</span>
+            {{ session('status') }}
         </div>
     @endif
 
