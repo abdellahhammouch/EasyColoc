@@ -42,4 +42,50 @@ class Colocation extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function balances(): array
+    {
+        // Membres actifs
+        $members = $this->users()->wherePivotNull('left_at')->get();
+        $n = $members->count();
+
+        if ($n === 0) return [];
+
+        $balances = [];
+        foreach ($members as $member) {
+            $balances[$member->id] = [
+                'user'    => $member,
+                'balance' => 0.0,
+            ];
+        }
+
+        $expenses = $this->expenses()->with('payer')->get();
+
+        foreach ($expenses as $expense) {
+            $amount    = (float) $expense->amount;
+            $payerId   = $expense->paid_by;
+            $shareEach = $amount / $n;
+
+            foreach ($members as $member) {
+                if ($member->id === $payerId) {
+                    $balances[$member->id]['balance'] += $amount - $shareEach;
+                } else {
+                    $balances[$member->id]['balance'] -= $shareEach;
+                }
+            }
+        }
+
+        $payments = $this->payments()->get();
+
+        foreach ($payments as $payment) {
+            if (isset($balances[$payment->payer_id])) {
+                $balances[$payment->payer_id]['balance'] += (float) $payment->amount;
+            }
+            if (isset($balances[$payment->payee_id])) {
+                $balances[$payment->payee_id]['balance'] -= (float) $payment->amount;
+            }
+        }
+
+        return $balances;
+    }
 }

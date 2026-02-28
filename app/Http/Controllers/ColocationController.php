@@ -75,6 +75,8 @@ class ColocationController extends Controller
             'expenses.payer',
         ]);
 
-        return view('colocations.show', compact('colocation'));
+        $balances = $colocation->balances();
+
+        return view('colocations.show', compact('colocation', 'balances'));
     }
 }

@@ -47,10 +47,9 @@
                         Balances
                     </h2>
                     @php
-                        $me = $colocation->users->firstWhere('id', auth()->id());
-                        $myBalance = $me?->pivot?->balance ?? 0;
+                        $myBalance = isset($balances[auth()->id()]) ? $balances[auth()->id()]['balance'] : 0;
                     @endphp
-                    @if($me && is_null($me->pivot->left_at) && (float)$myBalance < 0)
+                    @if($myBalance < 0)
                         <form method="POST" action="{{ route('payments.settle', $colocation) }}"
                               onsubmit="return confirm('Confirmer le règlement ?')">
                             @csrf
@@ -63,32 +62,38 @@
                 </div>
 
                 <div class="space-y-3">
-                    @foreach($colocation->users as $u)
-                        @if(is_null($u->pivot->left_at))
-                            @php $bal = (float) $u->pivot->balance; @endphp
-                            <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                                        {{ strtoupper(substr($u->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <p class="font-medium text-stone-200 text-sm">{{ $u->name }}</p>
-                                        <p class="text-[10px] uppercase tracking-wider text-stone-600">{{ $u->pivot->role }}</p>
-                                    </div>
+                    @foreach($balances as $userId => $data)
+                        @php $bal = round($data['balance'], 2); @endphp
+                        <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm
+                                    {{ $userId === auth()->id() ? 'bg-primary/20 border border-primary/30 text-primary' : 'bg-white/5 border border-white/10 text-stone-400' }}">
+                                    {{ strtoupper(substr($data['user']->name, 0, 1)) }}
                                 </div>
                                 <div>
-                                    @if($bal > 0)
-                                        <span class="text-emerald-400 font-bold">+{{ number_format($bal, 2) }} €</span>
-                                        <span class="text-[10px] text-emerald-600 block text-right">à recevoir</span>
-                                    @elseif($bal < 0)
-                                        <span class="text-red-400 font-bold">{{ number_format($bal, 2) }} €</span>
-                                        <span class="text-[10px] text-red-600 block text-right">à payer</span>
-                                    @else
-                                        <span class="text-stone-500 font-bold">0.00 €</span>
-                                    @endif
+                                    <p class="font-medium text-stone-200 text-sm">
+                                        {{ $data['user']->name }}
+                                        @if($userId === auth()->id())
+                                            <span class="text-primary text-[10px] ml-1">(vous)</span>
+                                        @endif
+                                    </p>
+                                    <p class="text-[10px] uppercase tracking-wider text-stone-600">
+                                        {{ $colocation->users->firstWhere('id', $userId)?->pivot->role }}
+                                    </p>
                                 </div>
                             </div>
-                        @endif
+                            <div class="text-right">
+                                @if($bal > 0)
+                                    <span class="text-emerald-400 font-bold">+{{ number_format($bal, 2) }} €</span>
+                                    <span class="text-[10px] text-emerald-600 block">à recevoir</span>
+                                @elseif($bal < 0)
+                                    <span class="text-red-400 font-bold">{{ number_format($bal, 2) }} €</span>
+                                    <span class="text-[10px] text-red-600 block">à payer</span>
+                                @else
+                                    <span class="text-stone-500 font-bold">0.00 €</span>
+                                @endif
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>
