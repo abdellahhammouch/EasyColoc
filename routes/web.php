@@ -17,7 +17,12 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     return view('dashboard', [
-        'userColocations' => auth()->user()->colocations ?? collect(),
+        'userColocations' => auth()->user()
+            ->colocations()
+            ->wherePivotNull('left_at')
+            ->withCount('expenses')
+            ->with('users')
+            ->get(),
     ]);
 })->middleware(['auth', 'notbanned', 'verified'])->name('dashboard');
 

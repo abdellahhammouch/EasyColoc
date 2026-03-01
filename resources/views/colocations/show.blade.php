@@ -1,5 +1,5 @@
 <x-app-layout>
-<div class="space-y-8">
+<div class="space-y-8" x-data="{ settleOpen: false }">
 
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -50,14 +50,11 @@
                         $myBalance = isset($balances[auth()->id()]) ? $balances[auth()->id()]['balance'] : 0;
                     @endphp
                     @if($myBalance < 0)
-                        <form method="POST" action="{{ route('payments.settle', $colocation) }}"
-                              onsubmit="return confirm('Confirmer le règlement ?')">
-                            @csrf
-                            <button class="inline-flex items-center gap-2 bg-primary text-black font-bold px-5 py-2.5 rounded-full text-xs uppercase tracking-wider hover:bg-yellow-400 transition-all">
-                                <span class="material-icons-round text-sm">payments</span>
-                                Marquer payé
-                            </button>
-                        </form>
+                        <button @click="settleOpen = true"
+                                class="inline-flex items-center gap-2 bg-primary text-black font-bold px-5 py-2.5 rounded-full text-xs uppercase tracking-wider hover:bg-yellow-400 transition-all">
+                            <span class="material-icons-round text-sm">payments</span>
+                            Marquer payé
+                        </button>
                     @endif
                 </div>
 
@@ -107,7 +104,14 @@
                     </h2>
                     <div class="flex items-center gap-3">
                         <a href="{{ route('expenses.index', $colocation) }}" class="text-xs text-primary hover:underline underline-offset-2">Voir tout</a>
-                        @if(!$colocation->categories->isEmpty())
+                        @if($colocation->categories->isEmpty())
+                            @if(auth()->id() === $colocation->owner_id)
+                                <a href="{{ route('categories.index', $colocation) }}"
+                                   class="inline-flex items-center gap-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-yellow-500/20 transition-colors">
+                                    <span class="material-icons-round text-sm">category</span> Créer des catégories
+                                </a>
+                            @endif
+                        @else
                             <a href="{{ route('expenses.create', $colocation) }}"
                                class="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-primary/20 transition-colors">
                                 <span class="material-icons-round text-sm">add</span> Ajouter
@@ -119,7 +123,15 @@
                 @if($colocation->categories->isEmpty())
                     <div class="text-center py-8 text-stone-600">
                         <span class="material-icons-round text-4xl mb-2 block">category</span>
-                        <p class="text-sm">Crée d'abord des catégories.</p>
+                        <p class="text-sm mb-3">Aucune catégorie créée.</p>
+                        @if(auth()->id() === $colocation->owner_id)
+                            <a href="{{ route('categories.index', $colocation) }}"
+                               class="inline-flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-full text-xs font-bold hover:bg-primary/20 transition-colors">
+                                <span class="material-icons-round text-sm">add</span> Créer des catégories
+                            </a>
+                        @else
+                            <p class="text-xs text-stone-600">Demandez à l'owner de créer des catégories.</p>
+                        @endif
                     </div>
                 @elseif($colocation->expenses->isEmpty())
                     <div class="text-center py-8 text-stone-600">
@@ -206,5 +218,68 @@
 
         </div>
     </div>
+
+    {{-- ══ Modal Règlement ══ --}}
+    <div x-show="settleOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+         @click.self="settleOpen = false"
+         @keydown.escape.window="settleOpen = false"
+         style="display: none;">
+
+        <div x-show="settleOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+             style="background: rgba(36,35,33,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.07);">
+
+            {{-- Gold top bar --}}
+            <div class="h-1.5 bg-gradient-to-r from-primary/80 to-primary/20"></div>
+
+            <div class="p-8">
+                {{-- Icon --}}
+                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20">
+                    <span class="material-icons-round text-primary text-3xl">payments</span>
+                </div>
+
+                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">
+                    Confirmer le règlement
+                </h3>
+                <p class="text-stone-500 text-sm text-center leading-relaxed mb-2">
+                    Vous êtes sur le point de marquer votre dette comme <span class="text-primary font-semibold">soldée</span>.
+                </p>
+                @php $myBal = round(abs($myBalance), 2); @endphp
+                <div class="flex items-center justify-center gap-2 my-5 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                    <span class="material-icons-round text-primary text-base">euro</span>
+                    <span class="text-white font-bold text-lg">{{ number_format($myBal, 2) }} €</span>
+                    <span class="text-stone-500 text-sm">à régler</span>
+                </div>
+                <p class="text-stone-600 text-xs text-center mb-7">
+                    Cette action confirmera que vous avez effectué le virement à vos colocataires.
+                </p>
+
+                <div class="flex flex-col gap-3">
+                    <form method="POST" action="{{ route('payments.settle', $colocation) }}">
+                        @csrf
+                        <button type="submit"
+                                class="w-full bg-primary text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
+                            Confirmer le paiement
+                        </button>
+                    </form>
+                    <button @click="settleOpen = false"
+                            class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 </x-app-layout>

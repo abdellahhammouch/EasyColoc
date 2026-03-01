@@ -25,7 +25,7 @@
                 <span class="material-icons-round text-8xl">payments</span>
             </div>
             <p class="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1">Dépenses</p>
-            <p class="text-3xl font-bold text-white">{{ $userColocations->sum(fn($c) => $c->expenses_count ?? 0) }}</p>
+            <p class="text-3xl font-bold text-white">{{ $userColocations->sum('expenses_count') }}</p>
         </div>
         <div class="glass p-6 rounded-2xl relative overflow-hidden group hover:border-primary/30 transition-colors">
             <div class="absolute -right-3 -bottom-3 opacity-5 group-hover:opacity-10 transition-opacity">

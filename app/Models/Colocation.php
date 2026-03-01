@@ -14,7 +14,7 @@ class Colocation extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->withPivot(['role', 'joined_at', 'left_at'])
+            ->withPivot(['role', 'joined_at', 'left_at', 'balance'])
             ->withTimestamps();
     }
 
@@ -62,13 +62,13 @@ class Colocation extends Model
         $expenses = $this->expenses()->with('payer')->get();
 
         foreach ($expenses as $expense) {
-            $amount    = (float) $expense->amount;
+            $amount    = round((float) $expense->amount, 2);
             $payerId   = $expense->paid_by;
-            $shareEach = $amount / $n;
+            $shareEach = round($amount / $n, 2);
 
             foreach ($members as $member) {
                 if ($member->id === $payerId) {
-                    $balances[$member->id]['balance'] += $amount - $shareEach;
+                    $balances[$member->id]['balance'] += round($amount - $shareEach, 2);
                 } else {
                     $balances[$member->id]['balance'] -= $shareEach;
                 }
@@ -78,11 +78,15 @@ class Colocation extends Model
         $payments = $this->payments()->get();
 
         foreach ($payments as $payment) {
-            if (isset($balances[$payment->payer_id])) {
-                $balances[$payment->payer_id]['balance'] += (float) $payment->amount;
+            if (isset($balances[$payment->from_user_id])) {
+                $balances[$payment->from_user_id]['balance'] = round(
+                    $balances[$payment->from_user_id]['balance'] + (float) $payment->amount, 2
+                );
             }
-            if (isset($balances[$payment->payee_id])) {
-                $balances[$payment->payee_id]['balance'] -= (float) $payment->amount;
+            if (isset($balances[$payment->to_user_id])) {
+                $balances[$payment->to_user_id]['balance'] = round(
+                    $balances[$payment->to_user_id]['balance'] - (float) $payment->amount, 2
+                );
             }
         }
 

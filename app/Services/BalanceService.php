@@ -54,16 +54,18 @@ class BalanceService
     {
         DB::transaction(function () use ($colocationId, $debtorId) {
 
-            $debtorRow = DB::table('colocation_user')
-                ->where('colocation_id', $colocationId)
-                ->where('user_id', $debtorId)
-                ->whereNull('left_at')
-                ->lockForUpdate()
-                ->first();
+            $colocation = \App\Models\Colocation::with(['expenses', 'payments'])
+                ->findOrFail($colocationId);
 
-            if (!$debtorRow) abort(403);
+            $balances = $colocation->balances();
 
-            $debtorBalanceCents = $this->toCents((string) $debtorRow->balance);
+            if (!isset($balances[$debtorId])) {
+                abort(403);
+            }
+
+            $debtorBalanceCents = $this->toCents(
+                number_format($balances[$debtorId]['balance'], 2, '.', '')
+            );
 
             if ($debtorBalanceCents >= 0) {
                 return;
@@ -71,51 +73,38 @@ class BalanceService
 
             $debt = -$debtorBalanceCents;
 
-            $creditors = DB::table('colocation_user')
-                ->where('colocation_id', $colocationId)
-                ->whereNull('left_at')
-                ->where('user_id', '!=', $debtorId)
-                ->where('balance', '>', 0)
-                ->orderByDesc('balance')
-                ->orderBy('user_id')
-                ->lockForUpdate()
-                ->get();
+            $creditors = collect($balances)
+                ->filter(fn($b, $uid) => $uid !== $debtorId && $b['balance'] > 0)
+                ->sortByDesc(fn($b) => $b['balance']);
 
-            foreach ($creditors as $c) {
+            foreach ($creditors as $creditorId => $creditorData) {
                 if ($debt <= 0) break;
 
-                $credCents = $this->toCents((string) $c->balance);
+                // Même arrondi pour les créanciers
+                $credCents = $this->toCents(
+                    number_format($creditorData['balance'], 2, '.', '')
+                );
                 if ($credCents <= 0) continue;
 
                 $pay = min($debt, $credCents);
 
                 DB::table('payments')->insert([
                     'colocation_id' => $colocationId,
-                    'from_user_id' => $debtorId,
-                    'to_user_id' => (int) $c->user_id,
-                    'amount' => $this->toDecimal($pay),
-                    'paid_at' => now(),
-                    'status' => 'paid',
-                    'note' => 'Auto settlement (Marquer payé)',
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'from_user_id'  => $debtorId,
+                    'to_user_id'    => $creditorId,
+                    'amount'        => $this->toDecimal($pay),
+                    'paid_at'       => now(),
+                    'status'        => 'paid',
+                    'note'          => 'Auto settlement (Marquer payé)',
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
                 ]);
-
-                DB::table('colocation_user')
-                    ->where('colocation_id', $colocationId)
-                    ->where('user_id', $debtorId)
-                    ->update(['balance' => DB::raw("balance + " . $this->toDecimal($pay))]);
-
-                DB::table('colocation_user')
-                    ->where('colocation_id', $colocationId)
-                    ->where('user_id', (int) $c->user_id)
-                    ->update(['balance' => DB::raw("balance - " . $this->toDecimal($pay))]);
 
                 $debt -= $pay;
             }
 
-            if ($debt > 0) {
-                abort(500, "Incohérence balances: pas assez de créanciers pour régler la dette.");
+            if ($debt > 1) {
+                abort(500, "Incohérence balances : pas assez de créanciers pour régler la dette.");
             }
         });
     }
