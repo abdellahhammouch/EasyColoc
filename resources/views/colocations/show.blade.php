@@ -1,5 +1,5 @@
 <x-app-layout>
-<div class="space-y-8" x-data="{ settleOpen: false }">
+<div class="space-y-8" x-data="{ settleOpen: false, leaveOpen: false, deactivateOpen: false, kickOpen: false, kickName: '', kickUrl: '' }">
 
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -18,13 +18,31 @@
                 </span>
             </div>
         </div>
-        @if(auth()->id() === $colocation->owner_id)
-            <a href="{{ route('invitations.create', $colocation) }}"
-               class="inline-flex items-center gap-2 bg-primary text-black font-bold px-6 py-3 rounded-full text-sm uppercase tracking-wider hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
-                <span class="material-icons-round text-base">person_add</span>
-                Inviter
-            </a>
-        @endif
+
+        <div class="flex items-center gap-3 flex-wrap justify-end">
+            @if(auth()->id() === $colocation->owner_id)
+                @if($colocation->status === 'active')
+                    <a href="{{ route('invitations.create', $colocation) }}"
+                       class="inline-flex items-center gap-2 bg-primary text-black font-bold px-6 py-3 rounded-full text-sm uppercase tracking-wider hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
+                        <span class="material-icons-round text-base">person_add</span>
+                        Inviter
+                    </a>
+                    <button @click="deactivateOpen = true"
+                            class="inline-flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 px-5 py-3 rounded-full text-sm font-bold uppercase tracking-wider hover:bg-red-500/20 transition-all">
+                        <span class="material-icons-round text-base">power_settings_new</span>
+                        Désactiver
+                    </button>
+                @endif
+            @else
+                @if($colocation->status === 'active')
+                    <button @click="leaveOpen = true"
+                            class="inline-flex items-center gap-2 bg-white/5 text-stone-400 border border-white/10 px-5 py-3 rounded-full text-sm font-bold uppercase tracking-wider hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all">
+                        <span class="material-icons-round text-base">exit_to_app</span>
+                        Quitter
+                    </button>
+                @endif
+            @endif
+        </div>
     </div>
 
     @if(session('status'))
@@ -46,9 +64,7 @@
                         <span class="material-icons-round text-primary">account_balance_wallet</span>
                         Balances
                     </h2>
-                    @php
-                        $myBalance = isset($balances[auth()->id()]) ? $balances[auth()->id()]['balance'] : 0;
-                    @endphp
+                    @php $myBalance = isset($balances[auth()->id()]) ? $balances[auth()->id()]['balance'] : 0; @endphp
                     @if($myBalance < 0)
                         <button @click="settleOpen = true"
                                 class="inline-flex items-center gap-2 bg-primary text-black font-bold px-5 py-2.5 rounded-full text-xs uppercase tracking-wider hover:bg-yellow-400 transition-all">
@@ -68,12 +84,23 @@
                                     {{ strtoupper(substr($data['user']->name, 0, 1)) }}
                                 </div>
                                 <div>
-                                    <p class="font-medium text-stone-200 text-sm">
-                                        {{ $data['user']->name }}
-                                        @if($userId === auth()->id())
-                                            <span class="text-primary text-[10px] ml-1">(vous)</span>
-                                        @endif
-                                    </p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-medium text-stone-200 text-sm">
+                                            {{ $data['user']->name }}
+                                            @if($userId === auth()->id())
+                                                <span class="text-primary text-[10px] ml-1">(vous)</span>
+                                            @endif
+                                        </p>
+                                        {{-- Rating badge --}}
+                                        @php $rep = $data['user']->reputation ?? 0; @endphp
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                                            {{ $rep > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                            : ($rep < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                            : 'bg-white/5 text-stone-500 border border-white/10') }}">
+                                            <span class="material-icons-round" style="font-size:10px">{{ $rep < 0 ? 'thumb_down' : 'thumb_up' }}</span>
+                                            {{ $rep > 0 ? '+' : '' }}{{ $rep }}
+                                        </span>
+                                    </div>
                                     <p class="text-[10px] uppercase tracking-wider text-stone-600">
                                         {{ $colocation->users->firstWhere('id', $userId)?->pivot->role }}
                                     </p>
@@ -143,8 +170,8 @@
                         @foreach($colocation->expenses->sortByDesc('expense_date')->take(8) as $e)
                             <div class="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02]">
                                 <div class="flex items-center gap-3">
-                                    <div class="text-right">
-                                        <p class="font-semibold text-stone-200 text-sm group-hover:text-primary transition-colors">{{ $e->title }}</p>
+                                    <div>
+                                        <p class="font-semibold text-stone-200 text-sm">{{ $e->title }}</p>
                                         <div class="flex items-center gap-2 mt-0.5">
                                             <span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">{{ $e->category?->name }}</span>
                                             <span class="text-stone-600 text-xs">{{ \Illuminate\Support\Carbon::parse($e->expense_date)->format('d/m/Y') }}</span>
@@ -180,13 +207,38 @@
                     @foreach($colocation->users as $u)
                         @if(is_null($u->pivot->left_at))
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl {{ $u->id === $colocation->owner_id ? 'border-2 border-primary bg-primary/15' : 'border border-white/10 bg-white/5' }} flex items-center justify-center font-bold text-sm {{ $u->id === $colocation->owner_id ? 'text-primary' : 'text-stone-400' }}">
+                                <div class="w-10 h-10 rounded-xl flex-shrink-0
+                                    {{ $u->id === $colocation->owner_id ? 'border-2 border-primary bg-primary/15' : 'border border-white/10 bg-white/5' }}
+                                    flex items-center justify-center font-bold text-sm
+                                    {{ $u->id === $colocation->owner_id ? 'text-primary' : 'text-stone-400' }}">
                                     {{ strtoupper(substr($u->name, 0, 1)) }}
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-stone-200">{{ $u->name }}</p>
-                                    <span class="text-[10px] uppercase tracking-wider {{ $u->id === $colocation->owner_id ? 'text-primary' : 'text-stone-600' }}">{{ $u->pivot->role }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-stone-200 truncate">{{ $u->name }}</p>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        <span class="text-[10px] uppercase tracking-wider {{ $u->id === $colocation->owner_id ? 'text-primary' : 'text-stone-600' }}">
+                                            {{ $u->pivot->role }}
+                                        </span>
+                                        {{-- Rating badge --}}
+                                        @php $rep = $u->reputation ?? 0; @endphp
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                                            {{ $rep > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                            : ($rep < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                            : 'bg-white/5 text-stone-500 border border-white/10') }}">
+                                            <span class="material-icons-round" style="font-size:9px">{{ $rep < 0 ? 'thumb_down' : 'thumb_up' }}</span>
+                                            {{ $rep > 0 ? '+' : '' }}{{ $rep }}
+                                        </span>
+                                    </div>
                                 </div>
+                                {{-- Bouton retirer (owner, colocation active, pas sur lui-même) --}}
+                                @if(auth()->id() === $colocation->owner_id && $u->id !== $colocation->owner_id && $colocation->status === 'active')
+                                    <button
+                                        @click="kickOpen = true; kickName = '{{ addslashes($u->name) }}'; kickUrl = '{{ route('colocations.kick', [$colocation, $u]) }}'"
+                                        class="flex-shrink-0 w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-colors"
+                                        title="Retirer {{ $u->name }}">
+                                        <span class="material-icons-round text-sm">person_remove</span>
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     @endforeach
@@ -219,38 +271,21 @@
         </div>
     </div>
 
-    {{-- ══ Modal Règlement ══ --}}
     <div x-show="settleOpen"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"  x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
          class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
-         @click.self="settleOpen = false"
-         @keydown.escape.window="settleOpen = false"
-         style="display: none;">
-
+         @click.self="settleOpen = false" @keydown.escape.window="settleOpen = false" style="display:none">
         <div x-show="settleOpen"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
              class="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
-             style="background: rgba(36,35,33,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.07);">
-
-            {{-- Gold top bar --}}
+             style="background:rgba(36,35,33,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.07)">
             <div class="h-1.5 bg-gradient-to-r from-primary/80 to-primary/20"></div>
-
             <div class="p-8">
-                {{-- Icon --}}
                 <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20">
                     <span class="material-icons-round text-primary text-3xl">payments</span>
                 </div>
-
-                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">
-                    Confirmer le règlement
-                </h3>
+                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">Confirmer le règlement</h3>
                 <p class="text-stone-500 text-sm text-center leading-relaxed mb-2">
                     Vous êtes sur le point de marquer votre dette comme <span class="text-primary font-semibold">soldée</span>.
                 </p>
@@ -260,20 +295,150 @@
                     <span class="text-white font-bold text-lg">{{ number_format($myBal, 2) }} €</span>
                     <span class="text-stone-500 text-sm">à régler</span>
                 </div>
-                <p class="text-stone-600 text-xs text-center mb-7">
-                    Cette action confirmera que vous avez effectué le virement à vos colocataires.
-                </p>
-
+                <p class="text-stone-600 text-xs text-center mb-7">Cette action confirmera que vous avez effectué le virement à vos colocataires.</p>
                 <div class="flex flex-col gap-3">
                     <form method="POST" action="{{ route('payments.settle', $colocation) }}">
                         @csrf
-                        <button type="submit"
-                                class="w-full bg-primary text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
+                        <button type="submit" class="w-full bg-primary text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full hover:bg-yellow-400 transition-all shadow-lg shadow-primary/20">
                             Confirmer le paiement
                         </button>
                     </form>
-                    <button @click="settleOpen = false"
-                            class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                    <button @click="settleOpen = false" class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL : Quitter la colocation                                 --}}
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    <div x-show="leaveOpen"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"  x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+         @click.self="leaveOpen = false" @keydown.escape.window="leaveOpen = false" style="display:none">
+        <div x-show="leaveOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             class="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+             style="background:rgba(36,35,33,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.07)">
+            <div class="h-1.5 bg-gradient-to-r from-red-500/80 to-red-500/10"></div>
+            <div class="p-8">
+                <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+                    <span class="material-icons-round text-red-400 text-3xl">exit_to_app</span>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">Quitter la colocation ?</h3>
+                <p class="text-stone-500 text-sm text-center leading-relaxed mb-5">
+                    Cette action est <span class="text-red-400 font-semibold">irréversible</span>. Votre balance sera transférée à l'owner automatiquement.
+                </p>
+
+                @php $myBalance2 = isset($balances[auth()->id()]) ? round($balances[auth()->id()]['balance'], 2) : 0; @endphp
+                <div class="rounded-xl p-4 mb-6 border {{ $myBalance2 < 0 ? 'bg-red-500/5 border-red-500/15' : 'bg-emerald-500/5 border-emerald-500/15' }}">
+                    <p class="text-xs text-center font-bold uppercase tracking-widest mb-1 {{ $myBalance2 < 0 ? 'text-red-400' : 'text-emerald-400' }}">
+                        Votre balance actuelle
+                    </p>
+                    <p class="text-2xl font-bold text-center {{ $myBalance2 < 0 ? 'text-red-400' : 'text-emerald-400' }}">
+                        {{ $myBalance2 > 0 ? '+' : '' }}{{ number_format($myBalance2, 2) }} €
+                    </p>
+                    <p class="text-xs text-center text-stone-500 mt-2">
+                        @if($myBalance2 < 0)
+                            Réputation <b class="text-red-400">-1</b> — vous partez avec une dette non réglée
+                        @else
+                            Réputation <b class="text-emerald-400">+1</b> — {{ $myBalance2 > 0 ? 'votre crédit est transféré à l\'owner' : 'balance nulle, départ propre' }}
+                        @endif
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <form method="POST" action="{{ route('colocations.leave', $colocation) }}">
+                        @csrf
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm tracking-widest uppercase h-14 rounded-full transition-all shadow-lg shadow-red-600/20">
+                            Confirmer mon départ
+                        </button>
+                    </form>
+                    <button @click="leaveOpen = false" class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL : Désactiver la colocation (owner)                      --}}
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    <div x-show="deactivateOpen"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"  x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+         @click.self="deactivateOpen = false" @keydown.escape.window="deactivateOpen = false" style="display:none">
+        <div x-show="deactivateOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             class="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+             style="background:rgba(36,35,33,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.07)">
+            <div class="h-1.5 bg-gradient-to-r from-red-600/80 to-red-600/10"></div>
+            <div class="p-8">
+                <div class="w-16 h-16 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-600/20">
+                    <span class="material-icons-round text-red-500 text-3xl">power_settings_new</span>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">Désactiver la colocation ?</h3>
+                <p class="text-stone-500 text-sm text-center leading-relaxed mb-6">
+                    Cette action est <span class="text-red-400 font-semibold">définitive et irréversible</span>.<br>
+                    La colocation <b class="text-white">{{ $colocation->name }}</b> sera désactivée<br>et ne pourra jamais être réactivée.
+                </p>
+                <div class="flex flex-col gap-3">
+                    <form method="POST" action="{{ route('colocations.deactivate', $colocation) }}">
+                        @csrf
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm tracking-widest uppercase h-14 rounded-full transition-all shadow-lg shadow-red-600/20">
+                            Désactiver définitivement
+                        </button>
+                    </form>
+                    <button @click="deactivateOpen = false" class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL : Retirer un membre (owner)                             --}}
+    {{-- ══════════════════════════════════════════════════════════════ --}}
+    <div x-show="kickOpen"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"  x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+         @click.self="kickOpen = false" @keydown.escape.window="kickOpen = false" style="display:none">
+        <div x-show="kickOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             class="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+             style="background:rgba(36,35,33,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.07)">
+            <div class="h-1.5 bg-gradient-to-r from-orange-500/80 to-orange-500/10"></div>
+            <div class="p-8">
+                <div class="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-orange-500/20">
+                    <span class="material-icons-round text-orange-400 text-3xl">person_remove</span>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white text-center mb-2">Retirer le membre ?</h3>
+                <p class="text-stone-500 text-sm text-center leading-relaxed mb-4">
+                    Vous allez retirer <b class="text-white" x-text="kickName"></b> de la colocation.
+                </p>
+                <div class="bg-orange-500/5 border border-orange-500/15 rounded-xl p-3 mb-6 text-center">
+                    <p class="text-orange-400 text-xs leading-relaxed">
+                        <span class="material-icons-round text-sm align-middle mr-1">info</span>
+                        Sa balance sera transférée à vous (owner).<br>
+                        Son <b>rating ne sera pas affecté</b>.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <form method="POST" :action="kickUrl">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-black font-bold text-sm tracking-widest uppercase h-14 rounded-full transition-all shadow-lg shadow-orange-500/20">
+                            Confirmer le retrait
+                        </button>
+                    </form>
+                    <button @click="kickOpen = false" class="w-full text-stone-500 hover:text-white font-bold text-sm tracking-widest uppercase h-12 rounded-full border border-white/10 hover:border-white/20 transition-all">
                         Annuler
                     </button>
                 </div>

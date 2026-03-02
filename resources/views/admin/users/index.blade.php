@@ -39,6 +39,7 @@
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Rôle</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 hidden md:table-cell">ID</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Statut</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 hidden md:table-cell">Réputation</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 text-right">Action</th>
                     </tr>
                 </thead>
@@ -77,6 +78,16 @@
                                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Actif
                                 </span>
                             @endif
+                        </td>
+                        <td class="px-6 py-5 hidden md:table-cell">
+                            @php $rep = $u->reputation ?? 0; @endphp
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold
+                                {{ $rep > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : ($rep < 0 ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                : 'bg-white/5 text-stone-500 border border-white/10') }}">
+                                <span class="material-icons-round text-xs">{{ $rep < 0 ? 'thumb_down' : 'thumb_up' }}</span>
+                                {{ $rep > 0 ? '+' : '' }}{{ $rep }}
+                            </span>
                         </td>
                         <td class="px-6 py-5 text-right">
                             @if($u->is_banned)

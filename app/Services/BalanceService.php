@@ -80,7 +80,6 @@ class BalanceService
             foreach ($creditors as $creditorId => $creditorData) {
                 if ($debt <= 0) break;
 
-                // Même arrondi pour les créanciers
                 $credCents = $this->toCents(
                     number_format($creditorData['balance'], 2, '.', '')
                 );
@@ -106,6 +105,67 @@ class BalanceService
             if ($debt > 1) {
                 abort(500, "Incohérence balances : pas assez de créanciers pour régler la dette.");
             }
+        });
+    }
+
+    public function handleMemberExit(int $colocationId, int $memberId, bool $applyRating = true): void
+    {
+        DB::transaction(function () use ($colocationId, $memberId, $applyRating) {
+            $colocation = \App\Models\Colocation::with(['expenses', 'payments'])->findOrFail($colocationId);
+            $ownerId    = $colocation->owner_id;
+            $balances   = $colocation->balances();
+
+            $memberBalance = isset($balances[$memberId])
+                ? round($balances[$memberId]['balance'], 2)
+                : 0.0;
+
+            $balanceCents = $this->toCents(number_format($memberBalance, 2, '.', ''));
+
+            if ($balanceCents < 0) {
+                DB::table('payments')->insert([
+                    'colocation_id' => $colocationId,
+                    'from_user_id'  => $memberId,
+                    'to_user_id'    => $ownerId,
+                    'amount'        => $this->toDecimal(abs($balanceCents)),
+                    'paid_at'       => now(),
+                    'status'        => 'exit_transfer',
+                    'note'          => 'Transfert balance négative au départ du membre',
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+                if ($applyRating) {
+                    DB::table('users')->where('id', $memberId)
+                        ->update(['reputation' => DB::raw('reputation - 1')]);
+                }
+
+            } elseif ($balanceCents > 0) {
+                DB::table('payments')->insert([
+                    'colocation_id' => $colocationId,
+                    'from_user_id'  => $ownerId,
+                    'to_user_id'    => $memberId,
+                    'amount'        => $this->toDecimal($balanceCents),
+                    'paid_at'       => now(),
+                    'status'        => 'exit_transfer',
+                    'note'          => 'Transfert crédit positif au départ du membre',
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+                if ($applyRating) {
+                    DB::table('users')->where('id', $memberId)
+                        ->update(['reputation' => DB::raw('reputation + 1')]);
+                }
+
+            } else {
+                if ($applyRating) {
+                    DB::table('users')->where('id', $memberId)
+                        ->update(['reputation' => DB::raw('reputation + 1')]);
+                }
+            }
+
+            DB::table('colocation_user')
+                ->where('colocation_id', $colocationId)
+                ->where('user_id', $memberId)
+                ->update(['left_at' => now()]);
         });
     }
 

@@ -51,6 +51,16 @@ Route::middleware(['auth', 'notbanned'])->group(function () {
 
     Route::post('/invitations/{token}/decline', [InvitationController::class, 'decline'])
         ->name('invitations.decline');
+
+    Route::post('/colocations/{colocation}/leave', [ColocationController::class, 'leave'])
+        ->name('colocations.leave');
+
+    Route::post('/colocations/{colocation}/deactivate', [ColocationController::class, 'deactivate'])
+        ->name('colocations.deactivate');
+
+    Route::delete('/colocations/{colocation}/members/{user}', [ColocationController::class, 'kick'])
+        ->name('colocations.kick');
+
     // --- Categories (owner only) ---
     Route::get('/colocations/{colocation}/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/colocations/{colocation}/categories', [CategoryController::class, 'store'])->name('categories.store');
