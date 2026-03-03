@@ -45,49 +45,18 @@ class Colocation extends Model
 
     public function balances(): array
     {
-        // Membres actifs
-        $members = $this->users()->wherePivotNull('left_at')->get();
-        $n = $members->count();
+        $members = $this->users()
+            ->wherePivotNull('left_at')
+            ->get();
 
-        if ($n === 0) return [];
+        if ($members->isEmpty()) return [];
 
         $balances = [];
         foreach ($members as $member) {
             $balances[$member->id] = [
                 'user'    => $member,
-                'balance' => 0.0,
+                'balance' => round((float) $member->pivot->balance, 2),
             ];
-        }
-
-        $expenses = $this->expenses()->with('payer')->get();
-
-        foreach ($expenses as $expense) {
-            $amount    = round((float) $expense->amount, 2);
-            $payerId   = $expense->paid_by;
-            $shareEach = round($amount / $n, 2);
-
-            foreach ($members as $member) {
-                if ($member->id === $payerId) {
-                    $balances[$member->id]['balance'] += round($amount - $shareEach, 2);
-                } else {
-                    $balances[$member->id]['balance'] -= $shareEach;
-                }
-            }
-        }
-
-        $payments = $this->payments()->get();
-
-        foreach ($payments as $payment) {
-            if (isset($balances[$payment->from_user_id])) {
-                $balances[$payment->from_user_id]['balance'] = round(
-                    $balances[$payment->from_user_id]['balance'] + (float) $payment->amount, 2
-                );
-            }
-            if (isset($balances[$payment->to_user_id])) {
-                $balances[$payment->to_user_id]['balance'] = round(
-                    $balances[$payment->to_user_id]['balance'] - (float) $payment->amount, 2
-                );
-            }
         }
 
         return $balances;

@@ -4,36 +4,34 @@ namespace App\Services;
 
 use App\Models\Expense;
 use Illuminate\Support\Facades\DB;
+use App\Models\Colocation;
 
 class BalanceService
 {
-    
     public function applyExpense(Expense $expense): void
     {
         DB::transaction(function () use ($expense) {
 
             $colocationId = $expense->colocation_id;
-            $payerId = $expense->paid_by;
+            $payerId      = $expense->paid_by;
 
             $members = DB::table('colocation_user')
                 ->where('colocation_id', $colocationId)
                 ->whereNull('left_at')
                 ->orderBy('user_id')
                 ->pluck('user_id')
-                ->map(fn ($id) => (int) $id)
+                ->map(fn($id) => (int) $id)
                 ->all();
 
             $n = count($members);
             if ($n === 0) return;
 
             $totalCents = $this->toCents((string) $expense->amount);
-
-            $baseShare = intdiv($totalCents, $n);
-            $remainder = $totalCents % $n;
+            $baseShare  = intdiv($totalCents, $n);
+            $remainder  = $totalCents % $n;
 
             foreach ($members as $i => $userId) {
-                $share = $baseShare + ($i < $remainder ? 1 : 0);
-
+                $share      = $baseShare + ($i < $remainder ? 1 : 0);
                 $deltaCents = -$share;
 
                 if ($userId === $payerId) {
@@ -44,7 +42,7 @@ class BalanceService
                     ->where('colocation_id', $colocationId)
                     ->where('user_id', $userId)
                     ->update([
-                        'balance' => DB::raw("balance + " . $this->toDecimal($deltaCents))
+                        'balance' => DB::raw('balance + ' . $this->toDecimal($deltaCents))
                     ]);
             }
         });
@@ -54,34 +52,35 @@ class BalanceService
     {
         DB::transaction(function () use ($colocationId, $debtorId) {
 
-            $colocation = \App\Models\Colocation::with(['expenses', 'payments'])
-                ->findOrFail($colocationId);
+            $debtorPivot = DB::table('colocation_user')
+                ->where('colocation_id', $colocationId)
+                ->where('user_id', $debtorId)
+                ->whereNull('left_at')
+                ->first();
 
-            $balances = $colocation->balances();
+            if (!$debtorPivot) abort(403);
 
-            if (!isset($balances[$debtorId])) {
-                abort(403);
-            }
-
-            $debtorBalanceCents = $this->toCents(
-                number_format($balances[$debtorId]['balance'], 2, '.', '')
+            $debtorCents = $this->toCents(
+                number_format((float) $debtorPivot->balance, 2, '.', '')
             );
 
-            if ($debtorBalanceCents >= 0) {
-                return;
-            }
+            if ($debtorCents >= 0) return;
 
-            $debt = -$debtorBalanceCents;
+            $debt = -$debtorCents;
 
-            $creditors = collect($balances)
-                ->filter(fn($b, $uid) => $uid !== $debtorId && $b['balance'] > 0)
-                ->sortByDesc(fn($b) => $b['balance']);
+            $creditors = DB::table('colocation_user')
+                ->where('colocation_id', $colocationId)
+                ->whereNull('left_at')
+                ->where('user_id', '!=', $debtorId)
+                ->where('balance', '>', 0)
+                ->orderByDesc('balance')
+                ->get();
 
-            foreach ($creditors as $creditorId => $creditorData) {
+            foreach ($creditors as $creditor) {
                 if ($debt <= 0) break;
 
                 $credCents = $this->toCents(
-                    number_format($creditorData['balance'], 2, '.', '')
+                    number_format((float) $creditor->balance, 2, '.', '')
                 );
                 if ($credCents <= 0) continue;
 
@@ -90,7 +89,7 @@ class BalanceService
                 DB::table('payments')->insert([
                     'colocation_id' => $colocationId,
                     'from_user_id'  => $debtorId,
-                    'to_user_id'    => $creditorId,
+                    'to_user_id'    => (int) $creditor->user_id,
                     'amount'        => $this->toDecimal($pay),
                     'paid_at'       => now(),
                     'status'        => 'paid',
@@ -99,11 +98,22 @@ class BalanceService
                     'updated_at'    => now(),
                 ]);
 
+                // Mettre à jour les pivots des deux côtés
+                DB::table('colocation_user')
+                    ->where('colocation_id', $colocationId)
+                    ->where('user_id', $debtorId)
+                    ->update(['balance' => DB::raw('balance + ' . $this->toDecimal($pay))]);
+
+                DB::table('colocation_user')
+                    ->where('colocation_id', $colocationId)
+                    ->where('user_id', $creditor->user_id)
+                    ->update(['balance' => DB::raw('balance - ' . $this->toDecimal($pay))]);
+
                 $debt -= $pay;
             }
 
             if ($debt > 1) {
-                abort(500, "Incohérence balances : pas assez de créanciers pour régler la dette.");
+                abort(500, 'Incohérence balances : pas assez de créanciers.');
             }
         });
     }
@@ -111,89 +121,100 @@ class BalanceService
     public function handleMemberExit(int $colocationId, int $memberId, bool $applyRating = true): void
     {
         DB::transaction(function () use ($colocationId, $memberId, $applyRating) {
-            $colocation = \App\Models\Colocation::with(['expenses', 'payments'])->findOrFail($colocationId);
+
+            $colocation = Colocation::findOrFail($colocationId);
             $ownerId    = $colocation->owner_id;
-            $balances   = $colocation->balances();
 
-            $memberBalance = isset($balances[$memberId])
-                ? round($balances[$memberId]['balance'], 2)
-                : 0.0;
+            $memberPivotBalance = (float) DB::table('colocation_user')
+                ->where('colocation_id', $colocationId)
+                ->where('user_id', $memberId)
+                ->value('balance');
 
-            $balanceCents = $this->toCents(number_format($memberBalance, 2, '.', ''));
+            $balanceCents = $this->toCents(
+                number_format($memberPivotBalance, 2, '.', '')
+            );
 
-            if ($balanceCents < 0) {
-                DB::table('payments')->insert([
-                    'colocation_id' => $colocationId,
-                    'from_user_id'  => $memberId,
-                    'to_user_id'    => $ownerId,
-                    'amount'        => $this->toDecimal(abs($balanceCents)),
-                    'paid_at'       => now(),
-                    'status'        => 'exit_transfer',
-                    'note'          => 'Transfert balance négative au départ du membre',
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
-                ]);
-                if ($applyRating) {
-                    DB::table('users')->where('id', $memberId)
-                        ->update(['reputation' => DB::raw('reputation - 1')]);
-                }
+            if ($balanceCents !== 0) {
+                DB::table('colocation_user')
+                    ->where('colocation_id', $colocationId)
+                    ->where('user_id', $ownerId)
+                    ->update([
+                        'balance' => DB::raw('balance + ' . $this->toDecimal($balanceCents))
+                    ]);
 
-            } elseif ($balanceCents > 0) {
-                DB::table('payments')->insert([
-                    'colocation_id' => $colocationId,
-                    'from_user_id'  => $ownerId,
-                    'to_user_id'    => $memberId,
-                    'amount'        => $this->toDecimal($balanceCents),
-                    'paid_at'       => now(),
-                    'status'        => 'exit_transfer',
-                    'note'          => 'Transfert crédit positif au départ du membre',
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
-                ]);
-                if ($applyRating) {
-                    DB::table('users')->where('id', $memberId)
-                        ->update(['reputation' => DB::raw('reputation + 1')]);
-                }
-
-            } else {
-                if ($applyRating) {
-                    DB::table('users')->where('id', $memberId)
-                        ->update(['reputation' => DB::raw('reputation + 1')]);
+                if ($balanceCents < 0) {
+                    DB::table('payments')->insert([
+                        'colocation_id' => $colocationId,
+                        'from_user_id'  => $memberId,
+                        'to_user_id'    => $ownerId,
+                        'amount'        => $this->toDecimal(abs($balanceCents)),
+                        'paid_at'       => now(),
+                        'status'        => 'exit_transfer',
+                        'note'          => 'Transfert balance au départ (historique)',
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
+                    ]);
+                } else {
+                    DB::table('payments')->insert([
+                        'colocation_id' => $colocationId,
+                        'from_user_id'  => $ownerId,
+                        'to_user_id'    => $memberId,
+                        'amount'        => $this->toDecimal($balanceCents),
+                        'paid_at'       => now(),
+                        'status'        => 'exit_transfer',
+                        'note'          => 'Transfert crédit au départ (historique)',
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
+                    ]);
                 }
             }
 
             DB::table('colocation_user')
                 ->where('colocation_id', $colocationId)
                 ->where('user_id', $memberId)
-                ->update(['left_at' => now()]);
+                ->update([
+                    'balance' => 0,
+                    'left_at' => now(),
+                ]);
+
+            if ($applyRating) {
+                if ($balanceCents < 0) {
+                    DB::table('users')->where('id', $memberId)
+                        ->update(['reputation' => DB::raw('reputation - 1')]);
+                } else {
+                    DB::table('users')->where('id', $memberId)
+                        ->update(['reputation' => DB::raw('reputation + 1')]);
+                }
+            }
         });
     }
+
+    // ── Helpers ────────────────────────────────────────────────
 
     private function toCents(string $amount): int
     {
         $amount = str_replace(',', '.', trim($amount));
-        $neg = false;
+        $neg    = false;
 
         if (str_starts_with($amount, '-')) {
-            $neg = true;
+            $neg    = true;
             $amount = ltrim($amount, '-');
         }
 
         [$whole, $frac] = array_pad(explode('.', $amount, 2), 2, '0');
-        $whole = (int) ($whole === '' ? 0 : $whole);
-        $frac = str_pad(substr($frac, 0, 2), 2, '0');
+        $whole  = (int) ($whole === '' ? 0 : $whole);
+        $frac   = str_pad(substr($frac, 0, 2), 2, '0');
+        $cents  = ($whole * 100) + (int) $frac;
 
-        $cents = ($whole * 100) + (int) $frac;
         return $neg ? -$cents : $cents;
     }
 
     private function toDecimal(int $cents): string
     {
-        $sign = $cents < 0 ? '-' : '';
+        $sign  = $cents < 0 ? '-' : '';
         $cents = abs($cents);
-
         $whole = intdiv($cents, 100);
-        $frac = $cents % 100;
+        $frac  = $cents % 100;
 
         return $sign . $whole . '.' . str_pad((string) $frac, 2, '0', STR_PAD_LEFT);
     }
